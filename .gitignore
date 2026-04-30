@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+data/
+etfs.csv
+debug_response.html
+debug_list.html
+*.json
