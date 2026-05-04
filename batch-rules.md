@@ -15,6 +15,7 @@ etfs.csv → deduplicate ISINs → ThreadPoolExecutor → fetch_etf_profile()
 - A **global** `threading.Event` (`_rate_limited`) pauses ALL workers when any one hits a 429.
 - Back-off: 300 s doubling each retry (5 attempts max) — do not lower this; justetf blocks aggressively.
 - Never increase default workers above 5 without testing first.
+- `--fail-fast`: stops all workers immediately on the first 403 or 429. Use with `--resume` to continue later from where it stopped.
 
 ## Resumability
 - `profiles.jsonl` is written incrementally (append, one record per line).

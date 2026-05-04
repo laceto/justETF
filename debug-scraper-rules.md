@@ -15,13 +15,21 @@ Open the HTML file in a browser or text editor before touching any code.
 
 | Symptom | Likely cause |
 |---|---|
-| `RuntimeError: HTTP 403` | `curl_cffi` impersonation failed or Cloudflare updated |
-| All fields `None` or empty | Table indices shifted — new table added/removed on page |
+| `RuntimeError: HTTP 403` | `curl_cffi` impersonation failed or Cloudflare updated; use `--fail-fast` to stop immediately |
+| All fields `None` or empty | Heading detection failed and positional fallback also wrong — check WARNING logs |
+| One section empty + WARNING log | Heading text changed; add new variant to `_HEADING_PATTERNS` in `scrape_justetf.py` |
 | One field consistently `None` | Key name changed (language variant), check `_first_val()` keys |
-| `RuntimeError: HTTP 429` | Rate limited — wait and use `--delay` / fewer workers |
+| `RuntimeError: HTTP 429` | Rate limited — wait and use `--delay` / fewer workers; use `--fail-fast` to stop immediately |
 | JS arrays not found in list page | justetf changed variable naming (`idXXEtfs`) or moved to API |
 
-## Step 3 — Fix Table Index Drift
+## Step 3 — Fix Table Detection
+The primary mechanism is semantic (heading-based). Check the WARNING logs first:
+- `"Section '...' mapped to table via heading '...'"` → working correctly.
+- `"Section '...': heading not found, falling back to positional index N"` → heading text changed.
+
+**Fix heading mismatch** (most common): add the new heading text to `_HEADING_PATTERNS` in `scrape_justetf.py`.
+
+**Fix positional fallback** (only if heading is genuinely absent on this ETF type):
 1. In `debug_response.html`, search for the section name (e.g. "Holdings").
 2. Count `<table>` tags from the top of the document — this is the new index (0-based).
 3. Update the index in the relevant `_parse_*()` call in `scrape_justetf.py`.

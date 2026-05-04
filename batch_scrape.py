@@ -29,6 +29,7 @@ Usage
     python batch_scrape.py --csv etfs.csv --out-dir data/ --workers 5
     python batch_scrape.py --lang en --delay 2 --workers 3
     python batch_scrape.py --limit 50            # first 50 ISINs only (testing)
+    python batch_scrape.py --csv etfs.csv --out-dir data/ --workers 1 --delay 3 --lang en --fail-fast
 """
 
 from __future__ import annotations
@@ -180,6 +181,9 @@ _rate_limited   = threading.Event()
 _rl_lock        = threading.Lock()
 _rl_resume_at   = 0.0          # epoch time when the pause ends
 
+# Global abort event: set on first 403/429 when --fail-fast is active.
+_abort = threading.Event()
+
 
 def _global_wait_if_rate_limited() -> None:
     """Block the calling thread until the global rate-limit pause expires."""
@@ -210,8 +214,12 @@ def _fetch_one(
     write_lock: threading.Lock,
     counters: dict,
     total: int,
+    fail_fast: bool = False,
 ) -> bool:
     isin = list_row["isin"]
+
+    if _abort.is_set():
+        return False
 
     # Honour any active global pause first
     _global_wait_if_rate_limited()
@@ -236,7 +244,16 @@ def _fetch_one(
 
         except Exception as exc:
             last_exc = exc
-            if "429" in str(exc) and attempt < MAX_RETRIES:
+            is_429 = "429" in str(exc)
+            is_403 = "403" in str(exc)
+
+            if fail_fast and (is_403 or is_429):
+                LOG.error("HTTP %s on %s — aborting all workers (--fail-fast)",
+                          "429" if is_429 else "403", isin)
+                _abort.set()
+                break
+
+            if is_429 and attempt < MAX_RETRIES:
                 backoff = RETRY_BASE_429 * (2 ** (attempt - 1)) + random.uniform(0, 30)
                 _set_global_rate_limit(backoff)
                 _global_wait_if_rate_limited()
@@ -271,6 +288,7 @@ def run(
     delay: float,
     resume: bool,
     limit: int | None,
+    fail_fast: bool = False,
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     profiles_path = out_dir / "profiles.jsonl"
@@ -319,49 +337,55 @@ def run(
 
     write_lock = threading.Lock()
     counters   = {"done": 0, "fail": 0}
+    _abort.clear()
 
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {
-            pool.submit(
-                _fetch_one,
-                row, lang, delay,
-                profiles_path, errors_path,
-                write_lock, counters, total,
-            ): row["isin"]
-            for row in unique_rows
-        }
-        for future in as_completed(futures):
-            future.result()   # re-raise unexpected exceptions
+    try:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {
+                pool.submit(
+                    _fetch_one,
+                    row, lang, delay,
+                    profiles_path, errors_path,
+                    write_lock, counters, total,
+                    fail_fast,
+                ): row["isin"]
+                for row in unique_rows
+            }
+            for future in as_completed(futures):
+                future.result()   # re-raise unexpected exceptions
+    finally:
+        if _abort.is_set():
+            LOG.warning("Run aborted early due to --fail-fast. Use --resume to continue later.")
 
-    done = counters["done"]
-    fail = counters["fail"]
-    LOG.info("Finished: %d OK, %d failed out of %d", done, fail, total)
+        done = counters["done"]
+        fail = counters["fail"]
+        LOG.info("Finished: %d OK, %d failed out of %d", done, fail, total)
 
-    # Build final JSON from JSONL
-    LOG.info("Writing %s ...", final_json)
-    all_records: list[dict] = []
-    with profiles_path.open(encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                all_records.append(json.loads(line))
-    final_json.write_text(
-        json.dumps(all_records, indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
-    LOG.info("profiles.json: %d records", len(all_records))
+        # Build final JSON from JSONL — always written, even on early exit
+        LOG.info("Writing %s ...", final_json)
+        all_records: list[dict] = []
+        with profiles_path.open(encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    all_records.append(json.loads(line))
+        final_json.write_text(
+            json.dumps(all_records, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        LOG.info("profiles.json: %d records", len(all_records))
 
-    # Write flat summary CSV
-    LOG.info("Writing %s ...", summary_csv)
-    with summary_csv.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=SUMMARY_FIELDS)
-        writer.writeheader()
-        for rec in all_records:
-            writer.writerow(_to_summary_row(rec))
-    LOG.info("summary.csv: %d rows", len(all_records))
+        # Write flat summary CSV — always written, even on early exit
+        LOG.info("Writing %s ...", summary_csv)
+        with summary_csv.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=SUMMARY_FIELDS)
+            writer.writeheader()
+            for rec in all_records:
+                writer.writerow(_to_summary_row(rec))
+        LOG.info("summary.csv: %d rows", len(all_records))
 
-    if fail:
-        LOG.warning("%d failures logged in %s", fail, errors_path)
+        if fail:
+            LOG.warning("%d failures logged in %s", fail, errors_path)
 
 
 # ---------------------------------------------------------------------------
@@ -383,6 +407,8 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="Skip ISINs already in profiles.jsonl")
     p.add_argument("--limit",   type=int, default=None,
                    help="Only fetch the first N ISINs (useful for testing)")
+    p.add_argument("--fail-fast", action="store_true",
+                   help="Stop all workers immediately on first 403 or 429")
     return p
 
 
@@ -401,6 +427,7 @@ def main() -> None:
         delay=args.delay,
         resume=args.resume,
         limit=args.limit,
+        fail_fast=args.fail_fast,
     )
 
 

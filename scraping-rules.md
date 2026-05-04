@@ -15,13 +15,15 @@ Target scripts: `scrape_justetf.py` (profile pages) or `scrape_etf_list.py` (lis
 3. Call it inside the appropriate `_parse_*()` section function.
 4. Update `_print_profile()` only if the field is useful for human output.
 
-## Fixing Broken Positional Table Parsing
-Tables are parsed by positional index (e.g. `tables[6]` = holdings). When justetf.com adds/removes tables the indices shift.
+## Fixing Broken Table Parsing
+Tables are now found **semantically**: `_build_heading_table_map()` walks `<h2>`/`<h3>` tags and maps each to the first `<table>` that follows it. Positional indices (e.g. `tables[6]`) are only a fallback when heading detection fails — a `WARNING` log is emitted when the fallback is used.
+
+**If a section returns empty and you see a WARNING about positional fallback:**
 1. Run with `--debug` to dump raw HTML → `debug_response.html`.
-2. Open the file, search for the section heading (e.g. "Top 10 Holdings").
-3. Count how many `<table>` tags precede it — that is the new index.
-4. Update the index in the corresponding `_parse_*()` call.
-5. Log a comment with the validated ISIN so the next person knows the baseline.
+2. Search for the section heading (e.g. "Top Holdings") and check its exact text.
+3. Add the new text variant to `_HEADING_PATTERNS` in `scrape_justetf.py` for the relevant section.
+4. If the heading is genuinely absent, update the positional fallback index in the `_parse_*()` call.
+5. Note the validated ISIN in a comment next to the changed index.
 
 ## Adding a New Field to ETFEntry (list scraper)
 1. Add the attribute to the `ETFEntry` dataclass in `scrape_etf_list.py`.
