@@ -27,9 +27,9 @@ etfs.csv → deduplicate ISINs → ThreadPoolExecutor → fetch_etf_profile()
 | File | Written when | Notes |
 |---|---|---|
 | `data/profiles.jsonl` | During run | One JSON object per line |
-| `data/profiles.json` | Run completes | Merged array from JSONL |
+| `data/profiles.json` | Run completes **or** `--fail-fast` abort | Merged array from JSONL |
 | `data/errors.jsonl` | During run | ISINs that failed all retries |
-| `data/summary.csv` | Run completes | Flat, no nested fields |
+| `data/summary.csv` | Run completes **or** `--fail-fast` abort | Flat, no nested fields |
 
 ## Modifying Output Schema
 - Flat fields → update `_build_record()` and `_to_summary_row()` + `SUMMARY_FIELDS`.

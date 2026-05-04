@@ -18,12 +18,19 @@ Target scripts: `scrape_justetf.py` (profile pages) or `scrape_etf_list.py` (lis
 ## Fixing Broken Table Parsing
 Tables are now found **semantically**: `_build_heading_table_map()` walks `<h2>`/`<h3>` tags and maps each to the first `<table>` that follows it. Positional indices (e.g. `tables[6]`) are only a fallback when heading detection fails — a `WARNING` log is emitted when the fallback is used.
 
+For exposure sections (`top_holdings`, `country_exposure`, `sector_exposure`), the positional-fallback result is also validated by `_is_valid_exposure_table()`. A table is rejected (section returned empty) if **any** of these is true:
+- The first row's weight is `None` — signals a column-header row from a different table type (e.g. a "Similar ETFs" table whose first cell is "Nome del Fondo"). Real exposure tables have no header rows; data starts immediately.
+- More than half the weights are unparseable (e.g. a listings table whose second column holds currency codes like "EUR").
+- Any weight is below −1 (e.g. a performance table with multi-year returns like −87.82%).
+
+This prevents commodity/leveraged ETPs (which have no holdings section) from picking up the wrong tables by accident.
+
 **If a section returns empty and you see a WARNING about positional fallback:**
 1. Run with `--debug` to dump raw HTML → `debug_response.html`.
 2. Search for the section heading (e.g. "Top Holdings") and check its exact text.
 3. Add the new text variant to `_HEADING_PATTERNS` in `scrape_justetf.py` for the relevant section.
-4. If the heading is genuinely absent, update the positional fallback index in the `_parse_*()` call.
-5. Note the validated ISIN in a comment next to the changed index.
+4. If the heading is genuinely absent on this ETF type (e.g. commodity ETP), empty is correct — no code change needed.
+5. If the heading is present but the validator is still rejecting it, check whether the table's weights are unexpectedly negative or unparseable and fix `_is_valid_exposure_table`.
 
 ## Adding a New Field to ETFEntry (list scraper)
 1. Add the attribute to the `ETFEntry` dataclass in `scrape_etf_list.py`.

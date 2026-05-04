@@ -158,6 +158,29 @@ def _parse_ter(raw: str) -> Optional[float]:
     return None
 
 
+def _is_valid_exposure_table(items: list[WeightedItem]) -> bool:
+    """Return False when the table is clearly not an exposure table.
+
+    Three disqualifiers:
+    - First row weight is None — indicates a column-header row from a different
+      table type (e.g. a similar-ETFs table whose first th says "Nome del Fondo").
+      Real exposure tables on justETF have no header row; data starts immediately.
+    - More than half the weights failed to parse (e.g. a listings table whose
+      second column contains currency codes like "EUR" rather than percentages).
+    - Any weight is strongly negative (e.g. a performance table with multi-year
+      returns like -87.82%).
+    """
+    if not items:
+        return True
+    if items[0].weight_pct is None:
+        return False
+    weights = [i.weight_pct for i in items]
+    non_null = [w for w in weights if w is not None]
+    if len(non_null) < max(1, len(weights) // 2):
+        return False
+    return not any(w < -1.0 for w in non_null)
+
+
 def _rows_to_weighted_items(table: Tag) -> list[WeightedItem]:
     items = []
     for row in table.find_all("tr"):
@@ -458,17 +481,23 @@ def _parse_exposure(
     t_country   = _lookup_table("country_exposure", heading_map, tables, 7)
     t_sector    = _lookup_table("sector_exposure",  heading_map, tables, 8)
 
-    if t_holdings:
-        profile.top_holdings = _rows_to_weighted_items(t_holdings)
-        LOG.debug("Parsed %d holdings", len(profile.top_holdings))
-
-    if t_country:
-        profile.country_exposure = _rows_to_weighted_items(t_country)
-        LOG.debug("Parsed %d country entries", len(profile.country_exposure))
-
-    if t_sector:
-        profile.sector_exposure = _rows_to_weighted_items(t_sector)
-        LOG.debug("Parsed %d sector entries", len(profile.sector_exposure))
+    for attr, table, label in [
+        ("top_holdings",    t_holdings, "top_holdings"),
+        ("country_exposure", t_country, "country_exposure"),
+        ("sector_exposure",  t_sector,  "sector_exposure"),
+    ]:
+        if table is None:
+            continue
+        items = _rows_to_weighted_items(table)
+        if _is_valid_exposure_table(items):
+            setattr(profile, attr, items)
+            LOG.debug("Parsed %d %s entries", len(items), label)
+        else:
+            LOG.warning(
+                "Section '%s': table content rejected by exposure validator "
+                "(negative weights or unparseable data) — section will be empty",
+                label,
+            )
 
 
 def _parse_performance(

@@ -17,6 +17,7 @@ Open the HTML file in a browser or text editor before touching any code.
 |---|---|
 | `RuntimeError: HTTP 403` | `curl_cffi` impersonation failed or Cloudflare updated; use `--fail-fast` to stop immediately |
 | All fields `None` or empty | Heading detection failed and positional fallback also wrong — check WARNING logs |
+| Exposure section empty + "rejected by exposure validator" | ETF type has no holdings/country/sector (e.g. commodity ETP) — correct, no fix needed |
 | One section empty + WARNING log | Heading text changed; add new variant to `_HEADING_PATTERNS` in `scrape_justetf.py` |
 | One field consistently `None` | Key name changed (language variant), check `_first_val()` keys |
 | `RuntimeError: HTTP 429` | Rate limited — wait and use `--delay` / fewer workers; use `--fail-fast` to stop immediately |
@@ -29,8 +30,10 @@ The primary mechanism is semantic (heading-based). Check the WARNING logs first:
 
 **Fix heading mismatch** (most common): add the new heading text to `_HEADING_PATTERNS` in `scrape_justetf.py`.
 
-**Fix positional fallback** (only if heading is genuinely absent on this ETF type):
-1. In `debug_response.html`, search for the section name (e.g. "Holdings").
+**Exposure section is empty with "rejected by exposure validator" warning**: the heading is absent and the positional fallback landed on the wrong table (e.g. performance or risk). This is correct behaviour for commodity/leveraged ETPs — no code change needed.
+
+**Fix positional fallback** (non-exposure sections only, e.g. `performance`, `listings`):
+1. In `debug_response.html`, search for the section name (e.g. "Rendimenti").
 2. Count `<table>` tags from the top of the document — this is the new index (0-based).
 3. Update the index in the relevant `_parse_*()` call in `scrape_justetf.py`.
 
