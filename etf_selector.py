@@ -337,6 +337,85 @@ def find_by_combo(
     return result
 
 
+def find_by_holdings_multi(
+    companies: "list[str | tuple[str, str]]",
+    df: pd.DataFrame,
+    top_n: int = 8,
+    print_results: bool = True,
+) -> "dict[str, pd.DataFrame]":
+    """
+    Search for multiple companies at once and return ETFs holding each.
+
+    Args:
+        companies: List of company name strings, or (name, country_label) tuples.
+                   Name is matched as a case-insensitive substring against top_holdings.
+        df:        DataFrame from load_data().
+        top_n:     Max ETFs to show per company (sorted by holding weight desc).
+
+    Returns:
+        Dict mapping each company name to a DataFrame with columns:
+        isin, name, matched_holding, holding_weight_pct.
+
+    Example:
+        find_by_holdings_multi([
+            ("Rheinmetall", "DE"),
+            ("Thales", "FR"),
+            ("BAE Systems", "UK"),
+        ], df)
+    """
+    results = {}
+    for entry in companies:
+        if isinstance(entry, tuple):
+            company, country_label = entry
+        else:
+            company, country_label = entry, None
+
+        label = f"{company} ({country_label})" if country_label else company
+        pattern = re.compile(re.escape(company), re.IGNORECASE)
+        rows = []
+        for _, row in df.iterrows():
+            holdings = row.get("top_holdings") or []
+            if not isinstance(holdings, list):
+                continue
+            for item in holdings:
+                if pattern.search(item.get("name", "")):
+                    rows.append({
+                        "isin": row["isin"],
+                        "name": row.get("name", ""),
+                        "matched_holding": item["name"],
+                        "holding_weight_pct": item.get("weight_pct") or 0,
+                    })
+                    break
+
+        if not rows:
+            if print_results:
+                print(f"\n{label}: -- not found in any ETF top holdings")
+            results[company] = pd.DataFrame()
+            continue
+
+        result = (
+            pd.DataFrame(rows)
+            .sort_values("holding_weight_pct", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
+        )
+        results[company] = result
+
+        if print_results:
+            sep = "-" * 80
+            print(f"\n{sep}")
+            print(f"  {label}")
+            print(sep)
+            for _, r in result.iterrows():
+                print(
+                    f"  {r['isin']}  "
+                    f"{r['name'][:65]:<65}  "
+                    f"[{r['matched_holding']}  {r['holding_weight_pct']:.2f}%]"
+                )
+
+    return results
+
+
 def list_countries(df: pd.DataFrame) -> "list[str]":
     """Return all country names present in the dataset."""
     countries = set()
@@ -354,38 +433,49 @@ def list_sectors() -> "list[str]":
     return sorted(REAL_SECTORS)
 
 
+# ─── Non-US comparables ───────────────────────────────────────────────────────
+
+NON_US_COMPARABLES = [
+    # Semiconductors
+    ("Infineon", "DE"),
+    ("STMicro", "CH/FR"),
+    ("NXP", "NL"),
+    ("Tokyo Electron", "JP"),
+    ("ASM International", "NL"),
+    ("Advantest", "JP"),
+    ("MediaTek", "TW"),
+    ("Renesas", "JP"),
+    # Defence / Space
+    ("Rheinmetall", "DE"),
+    ("Thales", "FR"),
+    ("Leonardo", "IT"),
+    ("BAE Systems", "UK"),
+    ("Saab", "SE"),
+    ("Hensoldt", "DE"),
+    ("QinetiQ", "UK"),
+    # Networking / Telecom
+    ("Ericsson", "SE"),
+    # Energy / Grid infrastructure
+    ("Siemens Energy", "DE"),
+    ("Siemens", "DE"),
+    ("Orsted", "DK"),
+    ("Vestas", "DK"),
+    ("RWE", "DE"),
+    # Industrial machinery
+    ("Atlas Copco", "SE"),
+    ("Epiroc", "SE"),
+    ("CNH Industrial", "IT/UK"),
+    ("Kubota", "JP"),
+]
+
+
 # ─── CLI demo ─────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    print("Loading ETF data…")
+    print("Loading ETF data...")
     df = load_data()
     print(f"Loaded {len(df):,} ETFs.\n")
 
-    print("Available sectors:", list_sectors())
-    print(f"Available countries ({len(list_countries(df))}): run list_countries(df) to see all\n")
-
-    # ── Example queries ──────────────────────────────────────────────────────
-
     print("=" * 80)
-    print("EXAMPLE 1 — South Korea exposure")
-    find_by_country("South Korea", df, min_weight=5)
-
-    print("=" * 80)
-    print("EXAMPLE 2 — Health Care sector")
-    find_by_sector("Health Care", df, min_weight=20)
-
-    print("=" * 80)
-    print("EXAMPLE 3 — AI theme")
-    find_by_theme("artificial intelligence", df)
-
-    print("=" * 80)
-    print("EXAMPLE 4 — ETFs holding NVIDIA")
-    find_by_holding("NVIDIA", df)
-
-    print("=" * 80)
-    print("EXAMPLE 5 — Semiconductor theme")
-    find_by_theme("semiconductor", df)
-
-    print("=" * 80)
-    print("EXAMPLE 6 — Combo: Technology sector + US exposure")
-    find_by_combo(df, country="United States", sector="Technology", min_sector_weight=30)
+    print("Non-US comparable companies -- ETFs holding each")
+    find_by_holdings_multi(NON_US_COMPARABLES, df, top_n=3)
