@@ -1,34 +1,38 @@
 """
 generate_isin_to_yf_map.py
 ===========================
-Build a ISIN → Yahoo Finance ticker mapping from the already-scraped
-justETF profiles (data/profiles.jsonl).
+Build a ISIN → Yahoo Finance ticker mapping for all ETFs in
+data/profiles.jsonl using the OpenFIGI batch API.
 
-Each ETF profile contains an ``exchange_listings`` list with fields:
-    exchange, currency, ticker, bloomberg, reuters
+The exchange_listings field in profiles.jsonl is unreliable (scraper
+positional-fallback bug), so we resolve tickers via OpenFIGI instead.
 
-We map the exchange name to a Yahoo Finance suffix (e.g. Xetra → .DE)
-and apply a preference order so we consistently pick one ticker per ETF.
+OpenFIGI API (free, no key needed)
+-----------------------------------
+Endpoint : https://api.openfigi.com/v3/mapping
+Limit    : 100 ISINs per request, 25 requests/minute (no key)
+Auth     : optional — set OPENFIGI_API_KEY env var for higher rate limits
 
-Preference order
-----------------
-1. EUR  Xetra (.DE)                — largest single EUR market for ETFs
-2. EUR  Euronext Amsterdam (.AS)
-3. EUR  others (.MI .PA .BR .LS .VI .MC .HE .ST .CO .OL .F)
-4. GBP  London Stock Exchange (.L)
-5. CHF  SIX Swiss Exchange (.SW)
-6. Any  remaining known exchange
-7. Skip — no known exchange found
+Exchange preference (OpenFIGI exchCode → Yahoo Finance suffix)
+--------------------------------------------------------------
+GX  (Xetra)              → .DE   EUR   ← preferred
+NA  (Euronext Amsterdam) → .AS   EUR
+FP  (Euronext Paris)     → .PA   EUR
+IM  (Borsa Italiana)     → .MI   EUR
+BB  (Euronext Brussels)  → .BR   EUR
+SW  (SIX Swiss)          → .SW   CHF
+LN  (London)             → .L    GBP
+US  / UN / UW (US)       → ""    USD
 
 Output
 ------
-data/ticker/isin_to_yf.json   — full mapping, one entry per ISIN
-data/ticker/isin_to_yf.csv    — flat CSV for review / direct use in myfinance2
+data/ticker/isin_to_yf.json   — full map { isin: {...} }
+data/ticker/isin_to_yf.csv    — flat CSV for review / use in myfinance2
 
 Usage
 -----
     python generate_isin_to_yf_map.py
-    python generate_isin_to_yf_map.py --input data/profiles.jsonl --out-dir data/ticker
+    python generate_isin_to_yf_map.py --limit 50   # test on first 50 ISINs
     python generate_isin_to_yf_map.py --no-report
 """
 
@@ -38,189 +42,209 @@ import argparse
 import csv
 import json
 import logging
+import os
+import time
+import urllib.request
+import urllib.error
 from pathlib import Path
 
 LOG = logging.getLogger(__name__)
 
+OPENFIGI_URL = "https://api.openfigi.com/v3/mapping"
+BATCH_SIZE   = 100   # max items per request (no-key limit)
+RATE_LIMIT   = 25    # requests per minute (no-key limit)
+SLEEP_SEC    = 60 / RATE_LIMIT  # ~2.4 s between requests
+
 # ---------------------------------------------------------------------------
-# Exchange name → Yahoo Finance suffix
+# OpenFIGI exchCode → (YF suffix, currency hint, preference rank)
+# Lower rank = more preferred
 # ---------------------------------------------------------------------------
-# Each entry: (lowercase_substring, yf_suffix)
-# Matched in order — more-specific patterns must come first.
 
-_EXCHANGE_PATTERNS: list[tuple[str, str]] = [
-    # EUR — Xetra / Frankfurt
-    ("xetra",                 ".DE"),
-    ("deutsche börse",        ".DE"),
-    ("frankfurt",             ".F"),
-    # EUR — Euronext
-    ("euronext amsterdam",    ".AS"),
-    ("amsterdam",             ".AS"),
-    ("euronext paris",        ".PA"),
-    ("paris",                 ".PA"),
-    ("euronext brussels",     ".BR"),
-    ("brussels",              ".BR"),
-    ("euronext lisbon",       ".LS"),
-    ("lisbon",                ".LS"),
-    # EUR — other EU
-    ("borsa italiana",        ".MI"),
-    ("milan",                 ".MI"),
-    ("vienna",                ".VI"),
-    ("madrid",                ".MC"),
-    ("bolsa de madrid",       ".MC"),
-    ("warsaw",                ".WA"),
-    ("helsinki",              ".HE"),
-    ("stockholm",             ".ST"),
-    ("copenhagen",            ".CO"),
-    ("oslo",                  ".OL"),
-    # GBP
-    ("london stock exchange", ".L"),
-    ("london",                ".L"),
-    ("lse",                   ".L"),
-    # CHF
-    ("six swiss",             ".SW"),
-    ("swiss exchange",        ".SW"),
-    # USD
-    ("new york",              ""),
-    ("nyse",                  ""),
-    ("nasdaq",                ""),
-]
-
-# Preference order: first suffix in this list wins when an ETF is listed on
-# multiple exchanges.  EUR markets first, then GBP, then CHF, then USD.
-_SUFFIX_PREFERENCE: list[str] = [
-    ".DE", ".AS",
-    ".MI", ".PA", ".BR", ".LS", ".VI", ".MC", ".HE", ".ST", ".CO", ".OL", ".F",
-    ".L",
-    ".SW",
-    "",   # USD — lowest preference
-]
+_EXCH_MAP: dict[str, tuple[str, str, int]] = {
+    "GX": (".DE", "EUR", 0),   # Xetra
+    "NA": (".AS", "EUR", 1),   # Euronext Amsterdam
+    "FP": (".PA", "EUR", 2),   # Euronext Paris
+    "IM": (".MI", "EUR", 3),   # Borsa Italiana
+    "BB": (".BR", "EUR", 4),   # Euronext Brussels
+    "SW": (".SW", "CHF", 5),   # SIX Swiss Exchange
+    "LN": (".L",  "GBP", 6),   # London Stock Exchange
+    "UN": ("",    "USD", 7),   # NYSE
+    "UW": ("",    "USD", 8),   # NASDAQ
+    "US": ("",    "USD", 9),   # generic US
+}
 
 
-def _exchange_to_suffix(exchange_name: str) -> str | None:
-    """Return the YF suffix for an exchange name, or None if unknown."""
-    lower = exchange_name.lower()
-    for pattern, suffix in _EXCHANGE_PATTERNS:
-        if pattern in lower:
-            return suffix
-    return None
-
-
-def _build_yf_ticker(raw_ticker: str, suffix: str) -> str:
-    """
-    Combine exchange ticker symbol and YF suffix.
-
-    justETF tickers are clean short codes (e.g. "IWDA", "CSPX"), but
-    Bloomberg-format fields sometimes bleed in (e.g. "IWDA GY") — take
-    only the first word to be safe.
-    """
-    clean = raw_ticker.strip().split()[0].upper()
-    return f"{clean}{suffix}"
-
-
-def _pick_best_listing(listings: list[dict]) -> dict | None:
-    """
-    From all exchange listings for one ETF, return the one whose exchange
-    maps to the highest-preference YF suffix.
-
-    Returns None if no listing maps to a known exchange.
-    """
-    resolved: list[tuple[int, dict, str]] = []  # (rank, listing, suffix)
-
-    for lst in listings:
-        suffix = _exchange_to_suffix(lst.get("exchange", ""))
-        if suffix is None:
-            continue
-        rank = _SUFFIX_PREFERENCE.index(suffix) if suffix in _SUFFIX_PREFERENCE else 999
-        resolved.append((rank, lst, suffix))
-
-    if not resolved:
+def _best_figi(figi_list: list[dict]) -> dict | None:
+    """Pick the highest-preference exchange result from a FIGI result list."""
+    candidates = []
+    for item in figi_list:
+        exch = item.get("exchCode", "")
+        if exch in _EXCH_MAP:
+            _, _, rank = _EXCH_MAP[exch]
+            candidates.append((rank, item))
+    if not candidates:
         return None
+    candidates.sort(key=lambda x: x[0])
+    return candidates[0][1]
 
-    resolved.sort(key=lambda x: x[0])
-    _, best_listing, best_suffix = resolved[0]
-    return {**best_listing, "_yf_suffix": best_suffix}
+
+def _to_yf_ticker(figi_item: dict) -> str:
+    """Construct a Yahoo Finance ticker from a FIGI result dict."""
+    ticker = (figi_item.get("ticker") or "").strip().split()[0].upper()
+    exch   = figi_item.get("exchCode", "")
+    suffix, _, _ = _EXCH_MAP.get(exch, ("", "", 99))
+    return f"{ticker}{suffix}"
+
+
+# ---------------------------------------------------------------------------
+# OpenFIGI batch caller
+# ---------------------------------------------------------------------------
+
+def _openfigi_batch(isins: list[str], api_key: str | None) -> list[list[dict] | None]:
+    """
+    Send one batch of up to BATCH_SIZE ISINs to OpenFIGI.
+
+    Returns a list of the same length as `isins`. Each element is either
+    a list of FIGI dicts or None on error.
+    """
+    payload = json.dumps(
+        [{"idType": "ID_ISIN", "idValue": isin} for isin in isins]
+    ).encode()
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["X-OPENFIGI-APIKEY"] = api_key
+
+    req = urllib.request.Request(OPENFIGI_URL, data=payload, headers=headers, method="POST")
+
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                results = json.loads(resp.read().decode())
+                out = []
+                for item in results:
+                    if "data" in item:
+                        out.append(item["data"])
+                    else:
+                        LOG.debug("OpenFIGI error for item: %s", item.get("error"))
+                        out.append(None)
+                return out
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429:
+                wait = 60 * (attempt + 1)
+                LOG.warning("Rate limited — waiting %ds before retry %d", wait, attempt + 1)
+                time.sleep(wait)
+            else:
+                LOG.warning("HTTP %d on attempt %d: %s", exc.code, attempt + 1, exc)
+                time.sleep(5)
+        except Exception as exc:
+            LOG.warning("Request error on attempt %d: %s", attempt + 1, exc)
+            time.sleep(5)
+
+    return [None] * len(isins)
 
 
 # ---------------------------------------------------------------------------
 # Core builder
 # ---------------------------------------------------------------------------
 
-def build_isin_map(profiles_path: Path) -> dict[str, dict]:
+def build_isin_map(
+    profiles_path: Path,
+    api_key: str | None = None,
+    limit: int | None = None,
+) -> dict[str, dict]:
     """
-    Stream-parse profiles.jsonl and return:
-        { isin: { isin, name, yf_ticker, exchange, currency, yf_suffix,
-                  ter_pct, fund_size_eur_mln, index, distribution,
-                  replication, investment_focus, all_listings } }
+    Load ISINs from profiles.jsonl, resolve via OpenFIGI, return mapping dict.
     """
-    mapping: dict[str, dict] = {}
-    total = skipped_no_listings = skipped_no_suffix = 0
-
+    profiles: list[dict] = []
     with profiles_path.open(encoding="utf-8") as fh:
-        for line_no, raw in enumerate(fh, 1):
-            raw = raw.strip()
-            if not raw:
-                continue
-            total += 1
+        for line in fh:
+            line = line.strip()
+            if line:
+                try:
+                    profiles.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
 
-            try:
-                profile = json.loads(raw)
-            except json.JSONDecodeError as exc:
-                LOG.warning("Line %d: JSON parse error — %s", line_no, exc)
+    if limit:
+        profiles = profiles[:limit]
+
+    LOG.info("Loaded %d profiles from %s", len(profiles), profiles_path)
+
+    profile_by_isin: dict[str, dict] = {}
+    for p in profiles:
+        isin = (p.get("isin") or "").strip()
+        if isin and isin not in profile_by_isin:
+            profile_by_isin[isin] = p
+
+    isins = list(profile_by_isin.keys())
+    LOG.info("Unique ISINs to resolve: %d", len(isins))
+
+    mapping: dict[str, dict] = {}
+    no_result = skipped = 0
+    total_batches = (len(isins) + BATCH_SIZE - 1) // BATCH_SIZE
+
+    for batch_idx in range(0, len(isins), BATCH_SIZE):
+        batch = isins[batch_idx: batch_idx + BATCH_SIZE]
+        batch_num = batch_idx // BATCH_SIZE + 1
+        LOG.info("Batch %d / %d  (%d ISINs) ...", batch_num, total_batches, len(batch))
+
+        results = _openfigi_batch(batch, api_key)
+
+        for isin, figi_list in zip(batch, results):
+            profile = profile_by_isin[isin]
+            if not figi_list:
+                no_result += 1
+                LOG.debug("ISIN %s: no FIGI results", isin)
                 continue
 
-            isin = (profile.get("isin") or "").strip()
-            if not isin:
-                continue
-
-            listings = profile.get("exchange_listings") or []
-            if not listings:
-                skipped_no_listings += 1
-                LOG.debug("ISIN %s: no exchange_listings", isin)
-                continue
-
-            best = _pick_best_listing(listings)
+            best = _best_figi(figi_list)
             if best is None:
-                skipped_no_suffix += 1
+                skipped += 1
                 LOG.debug(
-                    "ISIN %s: could not resolve a known exchange from %s",
-                    isin, [l.get("exchange") for l in listings],
+                    "ISIN %s: no preferred exchange among %s",
+                    isin, [f.get("exchCode") for f in figi_list],
                 )
                 continue
 
-            yf_ticker = _build_yf_ticker(best["ticker"], best["_yf_suffix"])
+            yf_ticker = _to_yf_ticker(best)
+            suffix, currency, _ = _EXCH_MAP[best["exchCode"]]
 
-            # Build a summary of all resolvable listings for reference
-            all_listings_resolved = []
-            for lst in listings:
-                sfx = _exchange_to_suffix(lst.get("exchange", ""))
-                all_listings_resolved.append({
-                    "exchange":  lst.get("exchange", ""),
-                    "currency":  lst.get("currency", ""),
-                    "ticker":    lst.get("ticker", ""),
-                    "yf_ticker": _build_yf_ticker(lst["ticker"], sfx) if sfx is not None else None,
-                    "yf_suffix": sfx,
-                })
+            all_options = []
+            for fi in figi_list:
+                if fi.get("exchCode") in _EXCH_MAP:
+                    sfx, cur, _ = _EXCH_MAP[fi["exchCode"]]
+                    tk = (fi.get("ticker") or "").strip().split()[0].upper()
+                    all_options.append({
+                        "exch_code":  fi["exchCode"],
+                        "currency":   cur,
+                        "yf_ticker":  f"{tk}{sfx}",
+                        "figi_name":  fi.get("name", ""),
+                    })
 
             mapping[isin] = {
                 "isin":              isin,
                 "name":              profile.get("name", ""),
                 "yf_ticker":         yf_ticker,
-                "exchange":          best.get("exchange", ""),
-                "currency":          best.get("currency", ""),
-                "yf_suffix":         best["_yf_suffix"],
+                "exch_code":         best["exchCode"],
+                "currency":          currency,
+                "yf_suffix":         suffix,
+                "figi_name":         best.get("name", ""),
                 "ter_pct":           profile.get("ter_pct"),
                 "fund_size_eur_mln": profile.get("fund_size_eur_mln"),
                 "index":             profile.get("index"),
                 "distribution":      profile.get("distribution"),
                 "replication":       profile.get("replication"),
                 "investment_focus":  profile.get("investment_focus"),
-                "all_listings":      all_listings_resolved,
+                "all_options":       all_options,
             }
 
+        if batch_idx + BATCH_SIZE < len(isins):
+            time.sleep(SLEEP_SEC)
+
     LOG.info(
-        "Mapped %d / %d ISINs  |  skipped: %d no listings, %d no known exchange",
-        len(mapping), total, skipped_no_listings, skipped_no_suffix,
+        "Done — mapped: %d  |  no FIGI result: %d  |  no preferred exchange: %d",
+        len(mapping), no_result, skipped,
     )
     return mapping
 
@@ -230,7 +254,7 @@ def build_isin_map(profiles_path: Path) -> dict[str, dict]:
 # ---------------------------------------------------------------------------
 
 _CSV_FIELDS = [
-    "isin", "name", "yf_ticker", "exchange", "currency", "yf_suffix",
+    "isin", "name", "yf_ticker", "exch_code", "currency", "yf_suffix",
     "ter_pct", "fund_size_eur_mln", "index", "distribution", "replication",
 ]
 
@@ -246,7 +270,7 @@ def save_json(mapping: dict[str, dict], path: Path) -> None:
 
 def save_csv(mapping: dict[str, dict], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    rows = sorted(mapping.values(), key=lambda x: (x.get("name") or ""))
+    rows = sorted(mapping.values(), key=lambda x: x.get("name") or "")
     with path.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=_CSV_FIELDS, extrasaction="ignore")
         writer.writeheader()
@@ -254,27 +278,28 @@ def save_csv(mapping: dict[str, dict], path: Path) -> None:
     LOG.info("CSV saved  → %s  (%d rows)", path, len(rows))
 
 
-def print_coverage_report(mapping: dict[str, dict], total_profiles: int) -> None:
+def print_coverage_report(mapping: dict[str, dict], total_isins: int) -> None:
     mapped = len(mapping)
-    pct = mapped / total_profiles * 100 if total_profiles else 0
+    pct = mapped / total_isins * 100 if total_isins else 0
 
-    suffix_counts: dict[str, int] = {}
+    exch_counts: dict[str, int] = {}
     currency_counts: dict[str, int] = {}
     for entry in mapping.values():
-        s = entry["yf_suffix"]
+        e = entry["exch_code"]
         c = entry["currency"]
-        suffix_counts[s] = suffix_counts.get(s, 0) + 1
+        exch_counts[e]     = exch_counts.get(e, 0) + 1
         currency_counts[c] = currency_counts.get(c, 0) + 1
 
     sep = "=" * 55
     print(f"\n{sep}")
-    print(f"  Coverage: {mapped} / {total_profiles} ISINs mapped ({pct:.1f}%)")
+    print(f"  Coverage: {mapped} / {total_isins} ISINs mapped ({pct:.1f}%)")
     print(sep)
 
-    print("\nYF suffix distribution:")
-    for suffix, count in sorted(suffix_counts.items(), key=lambda x: -x[1]):
-        bar = "#" * (count * 30 // max(suffix_counts.values()))
-        print(f"  {suffix or '(none)':>6}   {count:>5}  {count/mapped*100:5.1f}%  {bar}")
+    print("\nExchange distribution (OpenFIGI exchCode → YF suffix):")
+    for exch, count in sorted(exch_counts.items(), key=lambda x: -x[1]):
+        sfx = _EXCH_MAP.get(exch, ("?", "?", 99))[0] or "(no suffix)"
+        bar = "#" * (count * 30 // max(exch_counts.values()))
+        print(f"  {exch:>4} {sfx:>5}   {count:>5}  {count/mapped*100:5.1f}%  {bar}")
 
     print("\nCurrency distribution:")
     for currency, count in sorted(currency_counts.items(), key=lambda x: -x[1]):
@@ -284,7 +309,6 @@ def print_coverage_report(mapping: dict[str, dict], total_profiles: int) -> None
 
 
 def _count_profiles(profiles_path: Path) -> int:
-    """Count non-empty lines (cheap pass, no JSON parsing)."""
     return sum(1 for line in profiles_path.open(encoding="utf-8") if line.strip())
 
 
@@ -294,47 +318,43 @@ def _count_profiles(profiles_path: Path) -> int:
 
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="Build ISIN → Yahoo Finance ticker mapping from justETF profiles",
+        description="Build ISIN → Yahoo Finance ticker mapping via OpenFIGI",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p.add_argument(
-        "--input", default="data/profiles.jsonl",
-        help="Path to justETF profiles.jsonl",
-    )
-    p.add_argument(
-        "--out-dir", default="data/ticker",
-        help="Directory for output files (isin_to_yf.json and isin_to_yf.csv)",
-    )
-    p.add_argument(
-        "--no-report", action="store_true",
-        help="Suppress the coverage / suffix-distribution report",
-    )
+    p.add_argument("--input",     default="data/profiles.jsonl")
+    p.add_argument("--out-dir",   default="data/ticker")
+    p.add_argument("--limit",     type=int, default=None,
+                   help="Process only the first N ISINs (for testing)")
+    p.add_argument("--no-report", action="store_true")
     return p
 
 
 def main() -> None:
     args = _build_parser().parse_args()
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(levelname)-8s %(message)s",
-    )
+    logging.basicConfig(level=logging.INFO, format="%(levelname)-8s %(message)s")
 
     profiles_path = Path(args.input)
     if not profiles_path.exists():
         LOG.error("Profiles file not found: %s", profiles_path)
         raise SystemExit(1)
 
-    out_dir = Path(args.out_dir)
+    api_key = os.environ.get("OPENFIGI_API_KEY")
+    if api_key:
+        LOG.info("Using OpenFIGI API key (higher rate limits)")
+    else:
+        LOG.info("No OPENFIGI_API_KEY set — using free tier (25 req/min, 100/batch)")
 
-    LOG.info("Reading %s ...", profiles_path)
-    mapping = build_isin_map(profiles_path)
+    out_dir = Path(args.out_dir)
+    mapping = build_isin_map(profiles_path, api_key=api_key, limit=args.limit)
 
     save_json(mapping, out_dir / "isin_to_yf.json")
     save_csv(mapping,  out_dir / "isin_to_yf.csv")
 
     if not args.no_report:
         total = _count_profiles(profiles_path)
+        if args.limit:
+            total = min(total, args.limit)
         print_coverage_report(mapping, total)
 
 
