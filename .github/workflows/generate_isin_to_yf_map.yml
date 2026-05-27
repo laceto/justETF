@@ -1,0 +1,40 @@
+name: Generate ISIN → YF ticker map
+
+on:
+  push:
+    branches:
+      - claude/etf-list-myfinance2-integration-VxXkW
+    paths:
+      - generate_isin_to_yf_map.py
+      - data/profiles.jsonl
+  workflow_dispatch:
+
+jobs:
+  generate-map:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run ISIN → YF mapping
+        run: python generate_isin_to_yf_map.py
+
+      - name: Commit outputs
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ticker/isin_to_yf.json data/ticker/isin_to_yf.csv
+          git diff --staged --quiet \
+            && echo "Nothing to commit — outputs unchanged." \
+            || git commit -m "chore: regenerate isin_to_yf map [skip ci]"
+          git push
