@@ -10,7 +10,8 @@ positional-fallback bug), so we resolve tickers via OpenFIGI instead.
 OpenFIGI API (free, no key needed)
 -----------------------------------
 Endpoint : https://api.openfigi.com/v3/mapping
-Limit    : 100 ISINs per request, 25 requests/minute (no key)
+Limit    : 10 ISINs per request, 25 requests/minute (no key)
+           100 ISINs per request with an API key
 Auth     : optional — set OPENFIGI_API_KEY env var for higher rate limits
 
 Exchange preference (OpenFIGI exchCode → Yahoo Finance suffix)
@@ -51,7 +52,7 @@ from pathlib import Path
 LOG = logging.getLogger(__name__)
 
 OPENFIGI_URL = "https://api.openfigi.com/v3/mapping"
-BATCH_SIZE   = 100   # max items per request (no-key limit)
+BATCH_SIZE   = 10    # max items per request without API key (100 with key)
 RATE_LIMIT   = 25    # requests per minute (no-key limit)
 SLEEP_SEC    = 60 / RATE_LIMIT  # ~2.4 s between requests
 
@@ -130,6 +131,9 @@ def _openfigi_batch(isins: list[str], api_key: str | None) -> list[list[dict] | 
                         out.append(None)
                 return out
         except urllib.error.HTTPError as exc:
+            if exc.code == 413:
+                LOG.error("HTTP 413 Payload Too Large — reduce BATCH_SIZE (currently %d)", BATCH_SIZE)
+                break  # retrying won't help; batch is too large
             if exc.code == 429:
                 wait = 60 * (attempt + 1)
                 LOG.warning("Rate limited — waiting %ds before retry %d", wait, attempt + 1)
