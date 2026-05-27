@@ -19,13 +19,30 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
+          # fetch full history so push back works on a real branch HEAD
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Run ISIN → YF mapping
+      - name: Diagnostics
+        run: |
+          python --version
+          git branch --show-current
+          echo "--- profiles.jsonl check ---"
+          wc -l data/profiles.jsonl
+          echo "--- OpenFIGI connectivity ---"
+          curl -s -o /dev/null -w "HTTP %{http_code}\n" \
+            -X POST https://api.openfigi.com/v3/mapping \
+            -H "Content-Type: application/json" \
+            -d '[{"idType":"ID_ISIN","idValue":"IE00B4L5Y983"}]' || true
+
+      - name: Run ISIN → YF mapping (first 20 as smoke test)
+        run: python generate_isin_to_yf_map.py --limit 20
+
+      - name: Run ISIN → YF mapping (full)
         run: python generate_isin_to_yf_map.py
 
       - name: Commit outputs
@@ -36,4 +53,4 @@ jobs:
           git diff --staged --quiet \
             && echo "Nothing to commit — outputs unchanged." \
             || git commit -m "chore: regenerate isin_to_yf map [skip ci]"
-          git push
+          git push origin HEAD:${{ github.event.inputs.ref }}
