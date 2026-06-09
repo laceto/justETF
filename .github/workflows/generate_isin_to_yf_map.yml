@@ -1,13 +1,12 @@
 name: Generate ISIN → YF ticker map
 
 on:
-  push:
-    branches:
-      - claude/etf-list-myfinance2-integration-VxXkW
-    paths:
-      - generate_isin_to_yf_map.py
-      - data/profiles.jsonl
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch to run on and commit outputs to"
+        required: true
+        default: "claude/etf-list-myfinance2-integration-VxXkW"
 
 jobs:
   generate-map:
@@ -19,12 +18,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.event.inputs.ref }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Diagnostics
+        run: |
+          python --version
+          git branch --show-current
+          echo "--- profiles.jsonl check ---"
+          wc -l data/profiles.jsonl
+          echo "--- OpenFIGI connectivity ---"
+          curl -s -o /dev/null -w "HTTP %{http_code}\n" \
+            -X POST https://api.openfigi.com/v3/mapping \
+            -H "Content-Type: application/json" \
+            -d '[{"idType":"ID_ISIN","idValue":"IE00B4L5Y983"}]' || true
 
       - name: Run ISIN → YF mapping
         run: python generate_isin_to_yf_map.py
@@ -37,4 +49,4 @@ jobs:
           git diff --staged --quiet \
             && echo "Nothing to commit — outputs unchanged." \
             || git commit -m "chore: regenerate isin_to_yf map [skip ci]"
-          git push
+          git push origin HEAD:${{ github.event.inputs.ref }}
