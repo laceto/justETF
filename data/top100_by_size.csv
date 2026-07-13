@@ -1,0 +1,101 @@
+rank,isin,name,category,fund_size_eur_mln,ter_pct,distribution,replication,ytd_pct,index
+1,IE000IEGVMH6,Amundi Core MSCI USA UCITS ETF Dist,Equity United States,995.0,,Distributing,Physical(Full replication),0.03,MSCI USA
+2,IE000KCS7J59,HSBC MSCI Emerging Markets UCITS ETF USD (Acc),Equity Emerging Markets,990.0,,Accumulating,Physical(Full replication),11.22,MSCI Emerging Markets
+3,IE000JJPY166,iShares EUR Cash UCITS ETF EUR (Acc),Active ETFs Money Market,988.0,,Accumulating,Physical(Full replication),0.52,iShares EUR Cash
+4,IE00B9MRHC27,Xtrackers MSCI Nordic UCITS ETF 1D,Equity Europe,979.0,,Distributing,Physical(Full replication),4.47,MSCI Nordic Countries
+5,IE000CN8T855,JPMorgan US Research Enhanced Index Equity Active UCITS ETF EUR Hedged (acc),Active ETFs Equity,978.0,,Accumulating,Physical(Full replication),-0.59,JP Morgan US Research Enhanced Index Equity Active (EUR Hedged)
+6,FR0010755611,Amundi MSCI USA Daily (2x) Leveraged UCITS ETF Acc,Short & Leveraged ETFs Equity,978.0,,Accumulating,Synthetic(Unfunded swap),-1.37,MSCI USA Leveraged (2x)
+7,IE0008UEVOE0,iShares iBonds Dec 2028 Term EUR Corporate UCITS ETF EUR (Acc),Bonds Maturity bonds Corporate World,966.0,,Accumulating,Physical(Sampling),-0.18,Bloomberg MSCI December 2028 Maturity EUR Corporate ESG Screened
+8,FR0010429068,Amundi MSCI Emerging Markets Swap II UCITS ETF EUR Acc,Equity Emerging Markets,957.0,,Accumulating,Synthetic(Unfunded swap),10.99,MSCI Emerging Markets
+9,IE00BNGJJT35,Invesco S&P 500 Equal Weight UCITS ETF Acc,Equity Equal Weighted,952.0,,Accumulating,Physical(Full replication),3.4,S&P 500® Equal Weight
+10,IE000IDLWOL4,Xtrackers S&P 500 Equal Weight Scored & Screened UCITS ETF 2C - EUR Hedged,Equity Equal Weighted,948.0,,Accumulating,Physical(Full replication),2.74,S&P 500 Equal Weight Scored & Screened (EUR Hedged)
+11,IE000N6LBS91,UBS Core MSCI World UCITS ETF hCHF acc,Equity World,932.0,,Accumulating,Physical(Full replication),1.07,MSCI World (CHF Hedged)
+12,IE000BNLRWE6,Schroder Global Equity Active UCITS ETF,Active ETFs Equity,916.0,,Accumulating,Physical(Full replication),2.49,Schroder Global Equity Active
+13,IE00BWBXM492,State Street SPDR S&P U.S. Energy Select Sector UCITS ETF USD,Equity Energy,908.0,,Accumulating,Physical(Full replication),28.29,S&P Energy Select Sector Daily Capped 35/20
+14,DE000A0Q4R02,iShares STOXX Europe 600 Utilities UCITS ETF (DE),Equity Utilities,907.0,,Distributing,Physical(Full replication),18.39,STOXX® Europe 600 Utilities
+15,IE00B0M63284,iShares European Property Yield UCITS ETF,Real Estate Europe,907.0,,Distributing,Physical(Full replication),4.02,FTSE EPRA/NAREIT Developed Europe ex UK Dividend+
+16,IE00BGBN6P67,Invesco CoinShares Global Blockchain UCITS ETF Acc,Equity Blockchain,905.0,,Accumulating,Physical(Optimized sampling),0.31,CoinShares Blockchain Global Equity
+17,IE0003Z9E2Y3,Global X Copper Miners UCITS ETF USD Accumulating,Equity Basic Materials,897.0,,Accumulating,Physical(Full replication),15.97,Solactive Global Copper Miners
+18,FR0010754200,Amundi Euro Government Bond 0-6 M UCITS ETF Acc,Money Market,897.0,,Accumulating,Physical(Full replication),0.53,FTSE Eurozone Government Bill 0-6 Month Capped
+19,IE00BHXMHQ65,UBS S&P 500 Scored & Screened UCITS ETF hEUR acc,Equity Social/Environmental United States,893.0,,Accumulating,Physical(Full replication),-0.7,S&P 500 Scored & Screened (EUR Hedged)
+20,FR0010756114,Amundi MSCI World Ex EMU UCITS ETF Acc,Equity World,892.0,,Accumulating,Synthetic(Unfunded swap),1.48,MSCI World ex EMU
+21,IE00B0M63391,iShares MSCI Korea UCITS ETF (Dist),Equity South Korea,885.0,,Distributing,Physical(Full replication),41.68,MSCI Korea 20/35
+22,IE000ZX8CQG2,iShares EUR Corporate Bond ESG Paris-Aligned Climate UCITS ETF EUR (Dist),Bonds Social/Environmental Corporate World,885.0,,Distributing,Physical(Sampling),-0.45,Bloomberg MSCI Euro Corporate Climate Paris Aligned ESG Select
+23,IE00BL25JN58,Xtrackers MSCI World Minimum Volatility UCITS ETF 1C,Equity Low Volatility/Risk Weighted,880.0,,Accumulating,Physical(Full replication),1.03,MSCI World Minimum Volatility
+24,LU1681044563,Amundi MSCI Emerging Markets Asia UCITS ETF USD,Equity Asia Pacific,878.0,,Accumulating,Synthetic(Unfunded swap),10.52,MSCI Emerging Markets Asia
+25,LU1681045024,Amundi MSCI Emerging Markets Latin America UCITS ETF EUR (C),Equity Latin America,877.0,,Accumulating,Synthetic(Unfunded swap),24.36,MSCI Emerging Markets Latin America
+26,DE000A2QP4B6,iShares STOXX Europe 600 UCITS ETF (DE) EUR (Acc),Equity Europe,874.0,,Accumulating,Physical(Full replication),4.58,STOXX® Europe 600
+27,IE0000UW95D6,JPMorgan Global Research Enhanced Index Equity (ESG) UCITS ETF EUR Hedged (acc),Active ETFs Equity,865.0,,Accumulating,Physical(Full replication),1.26,JP Morgan Global Research Enhanced Index Equity (ESG) (EUR Hedged)
+28,LU1834986900,Amundi STOXX Europe 600 Healthcare UCITS ETF Acc,Equity Health Care,863.0,,Accumulating,Synthetic(Unfunded swap),0.43,STOXX® Europe 600 Health Care
+29,IE00B7WK2W23,UBS MSCI AC Asia ex Japan SF UCITS ETF USD acc,Equity Asia Pacific,861.0,,Accumulating,Synthetic(Swap-based),9.97,MSCI AC Asia ex Japan
+30,IE000LTA2082,Amundi S&P Global Industrials ESG UCITS ETF DR EUR (A),Equity Social/Environmental World,861.0,,Accumulating,Physical(Full replication),10.84,S&P Developed Ex-Korea LargeMidCap Sustainability Enhanced Industrials
+31,IE0000TZZ2B2,Invesco S&P 500 Equal Weight Swap UCITS ETF Acc,Equity Equal Weighted,857.0,,Accumulating,Synthetic(Unfunded swap),3.59,S&P 500® Equal Weight
+32,IE00BF0M2Z96,L&G Battery Value-Chain UCITS ETF,Equity Battery Technology,856.0,,Accumulating,Physical(Full replication),18.87,Solactive Battery Value-Chain
+33,IE00BYYHSM20,iShares MSCI Europe Quality Dividend Advanced UCITS ETF EUR (Dist),Equity Dividend Europe,852.0,,Distributing,Physical(Optimized sampling),2.84,MSCI Europe High Dividend Yield Advanced Select
+34,IE00BMW42181,iShares MSCI Europe Health Care Sector UCITS ETF EUR (Acc),Equity Health Care,849.0,,Accumulating,Physical(Full replication),0.42,MSCI Europe Health Care 20/35 Capped
+35,IE00BKZGB098,HSBC Multi-Factor Worldwide Equity UCITS ETF USD,Active ETFs Equity,848.0,,Distributing,Physical(Full replication),4.94,HSBC Multi-Factor Worldwide Equity
+36,LU1615092217,BNP Paribas Easy MSCI World SRI S-Series PAB 5% Capped UCITS ETF EUR Acc,Equity Social/Environmental World,845.0,,Accumulating,Physical(Full replication),0.1,MSCI World SRI S-Series PAB 5% Capped
+37,IE000E7EI9P0,Amundi S&P Global Information Technology ESG UCITS ETF DR EUR (A),Equity Social/Environmental World,843.0,,Accumulating,Physical(Full replication),-3.12,S&P Developed Ex-Korea LargeMidCap Sustainability Enhanced Information Technology
+38,FR001400U5Q4,Amundi PEA Monde (MSCI World) UCITS ETF Acc,Equity World,837.0,,Accumulating,Synthetic(Unfunded swap),1.86,MSCI World
+39,LU0659580079,Xtrackers MSCI Japan UCITS ETF 4C - EUR Hedged,Equity Japan,837.0,,Accumulating,Physical(Full replication),11.36,MSCI Japan (EUR Hedged)
+40,LU1681047319,Amundi Core EURO STOXX 50 UCITS ETF EUR Dist,Equity Europe,835.0,,Distributing,Physical(Full replication),3.18,EURO STOXX® 50
+41,IE00BF5GB717,iShares EUR Floating Rate Bond Advanced UCITS ETF EUR (Dist),Bonds Social/Environmental Corporate World,833.0,,Distributing,Physical(Sampling),0.4,Bloomberg MSCI EUR FRN Corporate 3% Issuer Cap Bond Sustainable SRI
+42,IE000ZOI8OK5,iShares iBonds Dec 2027 Term EUR Corporate UCITS ETF EUR (Acc),Bonds Maturity bonds Corporate World,832.0,,Accumulating,Physical(Sampling),0.18,Bloomberg MSCI December 2027 Maturity EUR Corporate ESG Screened
+43,IE00BVZ6SP04,PIMCO Euro Short Maturity UCITS ETF Acc,Active ETFs Bonds,826.0,,Accumulating,Physical(Sampling),0.49,PIMCO Euro Short Maturity
+44,IE00BH4G7D40,iShares USD Corporate Bond ESG SRI UCITS ETF EUR Hedged (Dist),Bonds Social/Environmental Corporate World,823.0,,Distributing,Physical(Sampling),-0.5,Bloomberg MSCI US Corporate ESG SRI (EUR Hedged)
+45,LU0292107645,Xtrackers MSCI Emerging Markets Swap UCITS ETF 1C,Equity Emerging Markets,822.0,,Accumulating,Synthetic(Unfunded swap),11.07,MSCI Emerging Markets
+46,IE00BNG8L278,Vanguard ESG Global All Cap UCITS ETF (USD) Accumulating,Equity Social/Environmental World,820.0,,Accumulating,Physical(Optimized sampling),1.21,FTSE Global All Cap Choice
+47,IE00BZ0G8B96,State Street SPDR MSCI Japan UCITS ETF JPY Unhedged,Equity Japan,819.0,,Accumulating,Physical(Optimized sampling),8.94,MSCI Japan
+48,IE00BM67HQ30,Xtrackers MSCI World Utilities UCITS ETF 1C,Equity Utilities,817.0,,Accumulating,Physical(Full replication),13.84,MSCI World Utilities
+49,IE00BNC1G707,Xtrackers MSCI USA Communication Services UCITS ETF 1D,Equity Telecommunication,816.0,,Distributing,Physical(Full replication),0.35,MSCI USA Communication Services 20-35 Custom
+50,FR0010361683,Amundi MSCI India Swap UCITS ETF EUR Acc,Equity India,812.0,,Accumulating,Synthetic(Unfunded swap),-9.75,MSCI India
+51,IE00BD3V0B10,iShares S&P U.S. Banks UCITS ETF USD (Acc),Equity Financials,808.0,,Accumulating,Physical(Optimized sampling),2.92,S&P 900 Banks 7/4 Capped
+52,IE000W8RYVC0,iShares MSCI EM ex-China UCITS ETF USD (Dist),Equity Emerging Markets,802.0,,Distributing,Physical(Full replication),16.91,MSCI Emerging Markets ex China
+53,IE00B86MWN23,iShares Edge MSCI Europe Minimum Volatility UCITS ETF,Equity Low Volatility/Risk Weighted,794.0,,Accumulating,Physical(Optimized sampling),6.67,MSCI Europe Minimum Volatility
+54,LU1681049109,Amundi S&P 500 Swap UCITS ETF EUR Hedged Acc,Equity United States,789.0,,Accumulating,Synthetic(Unfunded swap),-0.56,S&P 500® (EUR Hedged)
+55,IE000X59ZHE2,iShares AI Infrastructure UCITS ETF USD (Acc),Equity Artificial Intelligence,789.0,,Accumulating,Physical(Full replication),9.05,STOXX Global AI Infrastructure
+56,IE00BMVB5P51,Vanguard LifeStrategy 60% Equity UCITS ETF Accumulating,Active ETFs Equity,781.0,,Accumulating,Physical(Full replication),1.35,Vanguard LifeStrategy 60% Equity
+57,IE00BM67HN09,Xtrackers MSCI World Consumer Staples UCITS ETF 1C,Equity Consumer Staples,779.0,,Accumulating,Physical(Full replication),5.78,MSCI World Consumer Staples
+58,IE00BJK55B31,iShares USD High Yield Corporate Bond ESG SRI UCITS ETF USD (Acc),Bonds Social/Environmental Corporate World,779.0,,Accumulating,Physical(Sampling),0.72,Bloomberg MSCI US Corporate High Yield ESG SRI Bond
+59,IE000NITTFF2,iShares Russell 1000 Growth UCITS ETF USD (Acc),Equity Growth,778.0,,Accumulating,Physical(Full replication),-5.32,Russell 1000 Growth UCITS 30/18 Capped
+60,IE0003R87OG3,Avantis Global Small Cap Value UCITS ETF USD Acc,Active ETFs Equity,777.0,,Accumulating,Physical(Full replication),13.42,Avantis Global Small Cap Value
+61,IE00BKWQ0P07,State Street SPDR MSCI Europe Utilities UCITS ETF EUR,Equity Utilities,773.0,,Accumulating,Physical(Full replication),18.67,MSCI Europe Utilities 20/35 Capped
+62,IE00BJ5JNY98,iShares MSCI World Information Technology Sector Advanced UCITS ETF USD (Dist),Equity Social/Environmental World,773.0,,Distributing,Physical(Full replication),-3.2,MSCI World Information Technology Advanced Select 20 35 Capped
+63,FR0012740983,BNP Paribas Easy EURO STOXX 50 UCITS ETF,Equity Europe,767.0,,Distributing,Physical(Full replication),2.92,EURO STOXX® 50
+64,IE00B5SG8Z57,HSBC MSCI Pacific ex Japan UCITS ETF USD,Equity Asia Pacific,766.0,,Distributing,Physical(Full replication),11.5,MSCI Pacific ex Japan
+65,FR0012739431,BNP Paribas Easy EURO STOXX 50 UCITS ETF,Equity Europe,765.0,,Accumulating,Physical(Full replication),2.95,EURO STOXX® 50
+66,IE00BYYLVH00,UBS BBG Commodity CMCI SF UCITS ETF USD acc,Commodities,765.0,,Accumulating,Synthetic(Swap-based),16.71,UBS BCOM Constant Maturity
+67,IE00B00FV128,iShares FTSE 250 UCITS ETF,Equity Mid Cap,762.0,,Distributing,Physical(Optimized sampling),0.43,FTSE 250
+68,LU1169819635,UBS Core MSCI EMU UCITS ETF hCHF acc,Equity Europe,757.0,,Accumulating,Physical(Full replication),3.36,MSCI EMU (CHF Hedged)
+69,LU1900068328,Amundi MSCI AC Asia Pacific Ex Japan UCITS ETF Acc,Equity Asia Pacific,755.0,,Accumulating,Synthetic(Unfunded swap),10.51,MSCI AC Asia Pacific ex Japan
+70,LU1681045537,Amundi MSCI World ex Europe UCITS ETF EUR (C),Equity World,754.0,,Accumulating,Synthetic(Unfunded swap),1.12,MSCI World ex Europe
+71,IE000G2LIHG9,iShares MSCI USA Screened UCITS ETF EUR Hedged (Acc),Equity Social/Environmental United States,753.0,,Accumulating,Physical(Full replication),-1.93,MSCI USA Screened (EUR Hedged)
+72,IE000F60HVH9,Amundi MSCI USA Screened UCITS ETF Acc,Equity Social/Environmental United States,750.0,,Accumulating,Physical(Full replication),-0.91,MSCI USA Screened Select ex Thermal Coal
+73,IE0000UJ3480,iShares iBonds Dec 2028 Term USD Corporate UCITS ETF USD (Acc),Bonds Maturity bonds Corporate World,748.0,,Accumulating,Physical(Sampling),0.75,Bloomberg MSCI December 2028 Maturity USD Corporate ESG Screened
+74,IE00BM67HL84,Xtrackers MSCI World Financials UCITS ETF 1C,Equity Financials,744.0,,Accumulating,Physical(Full replication),-1.75,MSCI World Financials
+75,IE00BJXRT698,State Street SPDR Bloomberg 1-3 Month T-Bill UCITS ETF USD Unhedged (Acc),Money Market,743.0,,Accumulating,Physical(Optimized sampling),1.34,Bloomberg US Treasury 1-3m
+76,IE00BG8BCY43,JPMorgan USD Ultra-Short Income UCITS ETF USD (Acc),Active ETFs Bonds,743.0,,Accumulating,Physical(Full replication),1.23,JP Morgan USD Ultra-Short Income
+77,IE00BHJYDV33,Invesco MDAX UCITS ETF A,Equity Mid Cap,741.0,,Accumulating,Physical(Full replication),-0.83,MDAX®
+78,IE000G6GSP88,HSBC FTSE EPRA NAREIT Developed UCITS ETF USD (Acc),Real Estate World,740.0,,Accumulating,Physical(Full replication),7.14,FTSE EPRA/NAREIT Developed
+79,IE00BF59RX87,JPMorgan EUR Corporate Bond Research Enhanced Index (ESG) UCITS ETF,Active ETFs Bonds,738.0,,Accumulating,Physical(Full replication),-0.32,JP Morgan EUR Corporate Bond Research Enhanced Index (ESG)
+80,IE00BCHWNW54,Xtrackers MSCI USA Health Care UCITS ETF 1D,Equity Health Care,736.0,,Distributing,Physical(Full replication),-4.37,MSCI USA Health Care
+81,IE00BK5BQZ41,Vanguard FTSE Developed Asia Pacific ex Japan UCITS ETF (USD) Accumulating,Equity Asia Pacific,730.0,,Accumulating,Physical(Full replication),22.85,FTSE Developed Asia Pacific ex Japan
+82,IE00BHZPJ346,iShares MSCI Japan ESG Enhanced CTB UCITS ETF USD (Dist),Equity Social/Environmental Japan,729.0,,Distributing,Physical(Optimized sampling),8.91,MSCI Japan ESG Enhanced Focus CTB
+83,IE00BG11HV38,iShares MSCI World ESG Enhanced CTB UCITS ETF USD (Dist),Equity Social/Environmental World,728.0,,Distributing,Physical(Optimized sampling),1.02,MSCI World ESG Enhanced Focus CTB
+84,IE00BKBF6616,iShares Core MSCI EMU UCITS ETF USD Hedged (Acc),Equity Europe,722.0,,Accumulating,Physical(Full replication),4.97,MSCI EMU (USD Hedged)
+85,IE000BZ1HVL2,State Street SPDR MSCI World UCITS ETF EUR Hedged (Acc),Equity World,721.0,,Accumulating,Physical(Optimized sampling),1.03,MSCI World (EUR Hedged)
+86,LU0943504760,Xtrackers Swiss Large Cap UCITS ETF 1C,Equity Large Cap,721.0,,Accumulating,Physical(Full replication),0.53,Solactive Swiss Large Cap
+87,IE000TB15RC6,UBS Core MSCI World UCITS ETF hEUR acc,Equity World,720.0,,Accumulating,Physical(Full replication),1.45,MSCI World (EUR Hedged)
+88,IE00BD4TYG73,UBS Core MSCI USA UCITS ETF EUR Hedged acc,Equity United States,720.0,,Accumulating,Physical(Full replication),-0.86,MSCI USA (EUR Hedged)
+89,IE000TG1LGI4,UBS MSCI World Selection UCITS ETF USD acc,Equity Social/Environmental World,715.0,,Accumulating,Physical(Full replication),0.14,MSCI World Selection
+90,LU0292097747,Xtrackers MSCI UK ESG UCITS ETF 1D,Equity Social/Environmental United Kingdom,714.0,,Distributing,Physical(Full replication),3.93,MSCI UK IMI Low Carbon SRI Selection Capped
+91,IE00BQN1K562,iShares Edge MSCI Europe Quality Factor UCITS ETF,Equity Fundamental/Quality,712.0,,Accumulating,Physical(Optimized sampling),2.6,MSCI Europe Sector Neutral Quality
+92,IE00BKWQ0F09,State Street SPDR MSCI Europe Energy UCITS ETF EUR,Equity Energy,710.0,,Accumulating,Physical(Full replication),36.2,MSCI Europe Energy 20/35 Capped
+93,LU0397221945,Xtrackers Portfolio UCITS ETF 1C,Active ETFs Equity,707.0,,Accumulating,Physical(Full replication),2.32,Xtrackers Portfolio
+94,IE00BKWQ0G16,State Street SPDR MSCI Europe Financials UCITS ETF EUR,Equity Financials,704.0,,Accumulating,Physical(Full replication),0.86,MSCI Europe Financials 20/35 Capped
+95,IE00B4MCHD36,iShares S&P 500 Consumer Discretionary Sector UCITS ETF (Acc),Equity Consumer Discretionary,703.0,,Accumulating,Physical(Full replication),-3.93,S&P 500 Capped 35/20 Consumer Discretionary
+96,IE00BFMXVQ44,Vanguard FTSE 250 UCITS ETF (GBP) Accumulating,Equity Mid Cap,703.0,,Accumulating,Physical(Full replication),0.46,FTSE 250
+97,IE00BYXG2H39,iShares Nasdaq US Biotechnology UCITS ETF,Equity Biotech,696.0,,Accumulating,Physical(Optimized sampling),2.83,Nasdaq Biotechnology
+98,LU1900066975,Amundi MSCI Korea UCITS ETF Acc,Equity South Korea,694.0,,Accumulating,Synthetic(Unfunded swap),43.31,MSCI Korea 20/35
+99,IE000FJJZA01,State Street SPDR S&P 500 Quality Aristocrats UCITS ETF USD Unhedged (Acc),Equity Fundamental/Quality,694.0,,Accumulating,Physical(Full replication),-3.16,S&P 500 Quality FCF Aristocrats
+100,IE00B4M7GH52,iShares MSCI Poland UCITS ETF USD (Acc),Equity Poland,693.0,,Accumulating,Physical(Full replication),12.91,MSCI Poland
